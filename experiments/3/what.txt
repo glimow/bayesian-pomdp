@@ -1,0 +1,3 @@
+Test with Cont MCTS BO algo is fed with 10 discrete spline before it chooses any action.
+The 10 splines are similar to the ones given to Disc MCTS.
+The BO then can iterate over the 30 next action before stating "No more actions to try"
