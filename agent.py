@@ -1,12 +1,14 @@
-import GPy
+# import GPy
 
 from behaviors import disc_MCTS, cont_MCTS
 from behaviors.FTS import FTS
 from behaviors.cont_KMCF_FTS import ContKmcfFts
 from behaviors.randomBehavior import RandomBehavior
 from belief import Belief
-from environment import world
-from environment.Splines2D import Splines2D
+from environment import world0
+import GPy
+
+# from environment.Splines2D import Splines2D
 from tools import putils
 
 __author__ = 'philippe'
@@ -14,7 +16,7 @@ __author__ = 'philippe'
 # Action selection BO
 act_sel_k = 200  # k (10.0 is a good choice for smooth trajectories)
 act_space_res = 12  # resolution on which to find argmax(acquisition function) in BO (8)
-epsilon_act_diff = 0.75 ** Splines2D.free_dims  # smallest distance between 2 different actions (=0.01 for 4 dim) 0.316 ** world.World.Spline.free_dims
+epsilon_act_diff = 0.75 ** 2#Splines2D.free_dims  # smallest distance between 2 different actions (=0.01 for 4 dim) 0.316 ** world.World.Spline.free_dims
 
 
 class Agent:
@@ -34,14 +36,14 @@ class Agent:
 
         # Specify a reward function when simulating actions
         simulator_reward_fun = putils.UCB(exploration_param)
-
+        print self.action_provider.nparams
         # Create the agent's belief
         if obj_fun_type == 'static':
             def restrictions(m):
                 m['rbf.variance'].constrain_bounded(0.01, 10.0, warning=False)
                 m['rbf.lengthscale'].constrain_bounded(0.1, 10.0, warning=False)
 
-            self.belief = Belief(None, GPy.kern.RBF(2), restrict_hyper_parameters=restrictions)
+            self.belief = Belief(None, GPy.kern.RBF(self.action_provider.nparams), restrict_hyper_parameters=restrictions)
         elif obj_fun_type == 'dynamic':
             # Space-Time kernel
             ker_space = GPy.kern.RBF(2, lengthscale=0.920497128746, variance=0.00133408521113, active_dims=[0, 1])
@@ -105,3 +107,13 @@ class Agent:
         :param num_iterations: number of iterations in the optimization routine (default: 20)
         """
         self.belief.optimize(num_iterations)
+
+if __name__ == "__main__":
+    from environment import ActionProvider0, state, simulator, Action
+    action_provider = ActionProvider0.ActionProvider([(0,5)], 1, "kernel_traj", False)
+    world = world0.World(state.State([2]), "static", action_provider, 0.05)
+    action = Action.Action([[-0.5],[-1]],state.State([2]))
+    agent = Agent(action_provider, state.State([2]), state.State([2]), "static", 20.0, 'MCTS_cont',  (3, 150, 1, True))
+    print agent.select_action(state.State([2]))
+    # , init_pose, init_obs, obj_fun_type, exploration_param, behavior_alg,
+                #  behavior_args):

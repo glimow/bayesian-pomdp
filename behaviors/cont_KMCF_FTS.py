@@ -48,7 +48,7 @@ class ContKmcfFts(FTS):
             return None
         else:
             node.nb_actions_tried += 1
-            return self.action_provider.buid_action_from_params(node.action_picker.next_sample(), node.pose)
+            return self.action_provider.build_action_from_params(node.action_picker.next_sample(), node.pose)
 
     def __get_random_act__(self, pose):
         """
@@ -57,7 +57,7 @@ class ContKmcfFts(FTS):
         :return: A random action.
         """
         params = np.array([np.random.uniform(-1.0, 1.0) for _ in range(self.action_provider.nparams)])
-        return self.action_provider.buid_action_from_params(params, pose)
+        return self.action_provider.build_action_from_params(params, pose)
 
     def explore_child(self, from_v):
         """
@@ -74,6 +74,7 @@ class ContKmcfFts(FTS):
 
         # Explore all actions for nore
         untried_a = self.__get_untried_act__(from_v)
+        print(untried_a)
         while untried_a is not None:
             number_actions += 1
 
@@ -179,7 +180,7 @@ class ContKmcfFts(FTS):
         # Only keep the actions that are on the modes and explore deeper levels for those actions
         for act_params in strong_modes:
             # Execute the mode actions
-            action = self.action_provider.buid_action_from_params(act_params, from_v.pose)
+            action = self.action_provider.build_action_from_params(act_params, from_v.pose)
             samp_poses = self.action_provider.sample_trajectory(action)
             new_pose = self.action_provider.sample_trajectory_at(action, 1)
             bound_disc = self.action_provider.get_boundary_discount(samp_poses)

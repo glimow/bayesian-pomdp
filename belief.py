@@ -4,7 +4,7 @@ import math
 import numpy as np
 import GPy
 
-from environment.pose import Pose
+from environment.state import State
 
 __author__ = 'philippe'
 
@@ -19,7 +19,7 @@ class Belief:
         """
         self.need_recompute = True
         self.x = np.array([])
-        self.y = np.array([])
+        self.y = np.array([[]])
         self.mf = mean_fun
         self.cf = cov_fun
         self.restrict_hyper_parameters = restrict_hyper_parameters
@@ -31,12 +31,13 @@ class Belief:
         :param _x: state, as a Pose
         :param _y: observation, as a real number
         """
+        # print _y, "_y"
         self.need_recompute = True
         if len(self.x) == 0:
-            self.x = np.array([Pose.to_xy_array(_x)])
+            self.x = np.array([State.to_array(_x)])
             self.y = np.array([[_y]])
         else:
-            self.x = np.append(self.x, np.array([Pose.to_xy_array(_x)]), axis=0)
+            self.x = np.append(self.x, np.array([State.to_array(_x)]), axis=0)
             self.y = np.append(self.y, np.array([[_y]]), axis=0)
 
     def update_all(self, _x, _y):
@@ -60,11 +61,11 @@ class Belief:
             self.___recompute___()
         if hasattr(_x, '__iter__'):
             if isinstance(_x[0], Pose):
-                mean, var = self.model.predict(np.array(map(Pose.to_xy_array, _x)))
+                mean, var = self.model.predict(np.array(map(State.to_array, _x)))
             else:
                 mean, var = self.model.predict(np.array(_x))
         else:
-            mean, var = self.model.predict(np.array([Pose.to_xy_array(_x)]))
+            mean, var = self.model.predict(np.array([State.to_array(_x)]))
         if math.isnan(var[0]):
             var = np.zeros(var.shape)
         return mean.reshape(-1), var.reshape(-1)
@@ -74,6 +75,8 @@ class Belief:
         Recomputes the belief. Only useful before estimating new points.
         """
         if self.model is None:
+            # print "CF",self.cf
+            # print "X",self.x,"Y", self.y
             self.model = GPy.models.GPRegression(self.x, self.y, self.cf)
         else:
             self.model.set_XY(self.x, self.y)

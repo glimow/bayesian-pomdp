@@ -44,7 +44,7 @@ class DiscMCTS(MCTS):
         :return:
         """
         node = MCTS.new_node(self, belief, pose, reward, parent, from_act)
-        node.untried_acts = self.action_provider.buid_action_from_params(None, pose)
+        node.untried_acts = self.action_provider.build_action_from_params(None, pose)
         return node
 
     def get_random_act(self, new_pose):
@@ -53,7 +53,7 @@ class DiscMCTS(MCTS):
         :param new_pose: starting agent Pose.
         :return: random action.
         """
-        acts = self.action_provider.buid_action_from_params(None, new_pose)
+        acts = self.action_provider.build_action_from_params(None, new_pose)
         return acts[random.randint(0, len(acts) - 1)]
 
     def update_untried_act(self, node, act, rew):

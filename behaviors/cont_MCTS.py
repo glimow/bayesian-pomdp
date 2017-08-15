@@ -36,11 +36,14 @@ class ContMCTS(MCTS):
         :param node: Node from which to get an untried action.
         :return: an untried action.
         """
+
         if node.nb_actions_tried >= self.max_actions_per_node:
             return None
         else:
             node.nb_actions_tried += 1
-            return self.action_provider.buid_action_from_params(node.action_picker.next_sample(), node.pose)
+            action = self.action_provider.build_action_from_params([node.action_picker.next_sample()], node.pose)
+            # print node.action_picker.next_sample(),action.ld_params, 'node action picker'
+            return action
 
     def get_random_act(self, new_pose):
         """
@@ -49,7 +52,8 @@ class ContMCTS(MCTS):
         :return: random action.
         """
         ld_params = [random.uniform(-1.0, 1.0) for _ in range(self.action_provider.nparams)]
-        return self.action_provider.buid_action_from_params(ld_params, new_pose)
+        # print 'ldparamas', ld_params
+        return self.action_provider.build_action_from_params([ld_params], new_pose)
 
     def new_node(self, belief, pose, reward, parent, from_act):
         """
@@ -62,6 +66,7 @@ class ContMCTS(MCTS):
         :return:
         """
         node = MCTS.new_node(self, belief, pose, reward, parent, from_act)
+        # print self.action_provider.nparams
         node.action_picker = BO(self.action_provider.nparams, self.act_sel_k, [-1.0, 1.0], opt_maxeval=100,
                                 steps_btw_opt=10, custom_gp=True)
         node.nb_actions_tried = 0
@@ -82,7 +87,7 @@ class ContMCTS(MCTS):
                 [0, -0.5, 0, -1]
             ]
             for spl in disc_plines:
-                act = self.action_provider.buid_action_from_params(spl, node.pose)
+                act = self.action_provider.build_action_from_params(spl, node.pose)
                 samp_pose = self.action_provider.sample_trajectory(act)
                 est = node.belief.estimate(samp_pose)
                 rs = self.simulator_reward_fun(sum(est[0]), sum(est[1]))
@@ -96,4 +101,5 @@ class ContMCTS(MCTS):
         :param act: the action to update.
         :param rew: the corresponding reward.
         """
+        # print "act", act.ld_params
         node.action_picker.update(self.action_provider.get_low_dim(act), rew)

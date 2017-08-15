@@ -1,7 +1,7 @@
 import copy
 import math
 
-from environment.pose import Pose
+from environment.state import State
 from tools import putils
 
 __author__ = 'philippe'
@@ -32,7 +32,7 @@ class Splines2D:
         """
         Generate a Cubic Spline from low dimension parameters.
         :param ld_params: a list of low dimension parameters of size 4 or 5.
-        :param pos: Pose to constrain the Spline to.
+        :param pos: state to constrain the Spline to.
         :return: a generated Spline.
         """
         # Create a new spline
@@ -52,7 +52,7 @@ class Splines2D:
         # Normalize the spline
         integral_steps = 30
         steps = [du / float(integral_steps) for du in range(0, integral_steps + 1)]
-        nrm = putils.num_integral(map(lambda u: Pose.to_xy_array(spl.pos_at(u)), steps)) / Splines2D.norm_spline
+        nrm = putils.num_integral(map(lambda u: state.to_xy_array(spl.pos_at(u)), steps)) / Splines2D.norm_spline
         if nrm > 0.001:
             spl.ax /= nrm
             spl.ay /= nrm
@@ -96,14 +96,14 @@ class Spline2D:
         """
         Get a position by sampling the spline at a specific time.
         :param u: Time at which to sample.
-        :return: a Pose.
+        :return: a state.
         """
-        _x = self.ax * math.pow(u, 3) + self.bx * math.pow(u, 2) + self.cx * u + self.dx
+        _x = self.cx * u + self.dx
         _y = self.ay * math.pow(u, 3) + self.by * math.pow(u, 2) + self.cy * u + self.dy
         der1 = (3.0 * self.ax * math.pow(u, 2) + 2.0 * self.bx * u + self.cx,
                 3.0 * self.ay * math.pow(u, 2) + 2.0 * self.by * u + self.cy)
         der2 = (3.0 * self.ax * u + self.bx, 3.0 * self.ay * u + self.by)
-        return Pose(_x, _y, w=math.atan2(der1[1], der1[0]), w_vel=math.atan2(der2[1], der2[0]))
+        return State(_x, _y, w=math.atan2(der1[1], der1[0]), w_vel=math.atan2(der2[1], der2[0]))
 
     def __str__(self):
         """
@@ -167,7 +167,7 @@ class DiscreteSplines2D:
     def get_splines(pos):
         """
         Retrieve a list of discrete Splines, constrained to a position.
-        :param pos: Pose to constrain the Splines to.
+        :param pos: state to constrain the Splines to.
         :return: a list of Splines.
         """
         acts = copy.deepcopy(DiscreteSplines2D.__default_splines)
@@ -179,7 +179,7 @@ class DiscreteSplines2D:
     # def get_splines2(pos):
     #     """
     #     Retrieve a list of discrete Splines, constrained to a position.
-    #     :param pos: Pose to constrain the Splines to.
+    #     :param pos: state to constrain the Splines to.
     #     :return: a list of Splines.
     #     """
     #     acts = copy.deepcopy(DiscreteSplines2D.__default_splines2)
@@ -191,7 +191,7 @@ class DiscreteSplines2D:
     # def get_splines3(pos):
     #     """
     #     Retrieve a list of discrete Splines, constrained to a position.
-    #     :param pos: Pose to constrain the Splines to.
+    #     :param pos: state to constrain the Splines to.
     #     :return: a list of Splines.
     #     """
     #     acts = copy.deepcopy(DiscreteSplines2D.__default_splines3)
@@ -204,7 +204,7 @@ class DiscreteSplines2D:
         """
         Used to constrain a Spline to a specific position.
         :param spl: Spline to apply constraints to.
-        :param pos: Pose to constrain the Spline to.
+        :param pos: state to constrain the Spline to.
         """
         # Rotate, angle theta
         theta = pos.w
@@ -239,7 +239,7 @@ if __name__ == '__main__':
 
 
     spl2d = DiscreteSplines2D()
-    pos = Pose(0, 0)
+    pos = State(0, 0)
     jerks = []
     import matplotlib.pyplot as plt
     import numpy as np
@@ -248,27 +248,27 @@ if __name__ == '__main__':
     spls = spl2d.get_splines(pos)
     for spl in spls:
         t = np.linspace(0, 1, 50)
-        poses = [spl.pos_at(u) for u in t]
-        x = np.array([pose.x for pose in poses])
-        y = np.array([pose.y for pose in poses])
+        states = [spl.pos_at(u) for u in t]
+        x = np.array([state.x for state in states])
+        y = np.array([state.y for state in states])
         jerks.append(jerk(np.vstack((x,y)).T))
         plt.plot(x, y, 'b')
 
     # spls = spl2d.get_splines2(pos)
     # for spl in spls:
     #     t = np.linspace(0, 1, 50)
-    #     poses = [spl.pos_at(u) for u in t]
-    #     x = np.array([pose.x for pose in poses])
-    #     y = np.array([pose.y for pose in poses])
+    #     states = [spl.pos_at(u) for u in t]
+    #     x = np.array([state.x for state in states])
+    #     y = np.array([state.y for state in states])
     #     jerks.append(jerk(np.vstack((x,y)).T))
     #     plt.plot(x, y, 'b--')
     #
     # spls = spl2d.get_splines3(pos)
     # for spl in spls:
     #     t = np.linspace(0, 1, 50)
-    #     poses = [spl.pos_at(u) for u in t]
-    #     x = np.array([pose.x for pose in poses])
-    #     y = np.array([pose.y for pose in poses])
+    #     states = [spl.pos_at(u) for u in t]
+    #     x = np.array([state.x for state in states])
+    #     y = np.array([state.y for state in states])
     #     jerks.append(jerk(np.vstack((x,y)).T))
     #     plt.plot(x, y, 'b-.')
 

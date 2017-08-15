@@ -34,6 +34,7 @@ class MCTS:
         """
         v0 = self.new_node(belief.clone(), from_pose, reward_min, None, None)
         for i in range(self.mcts_max_iter):
+            print "##i##", i
             vi = self.tree_policy(v0)
             r = self.default_policy(vi)
             self.__backup__(vi, r)
@@ -48,6 +49,7 @@ class MCTS:
         v = v0
         while self.depth(v) <= self.mcts_depth:
             untried_a = self.get_untried_act(v)
+            # print untried_a, "action"
             if not untried_a:
                 v = self.best_child(v)
             else:
@@ -70,6 +72,7 @@ class MCTS:
                     rs = self.simulator_reward_fun(sum(est_mean), sum(bound_disc * est_var))
 
                 # Update the action picker BO
+                # print "untried_a",untried_a.ld_params
                 self.update_untried_act(v, untried_a, rs)
 
                 # Create a new node
@@ -177,6 +180,7 @@ class MCTS:
         :param node: Node from which to get an untried action.
         :return: an untried action.
         """
+        print node
         raise NotImplementedError("Implement this method")
 
     def update_untried_act(self, node, act, rew):

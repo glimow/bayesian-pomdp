@@ -108,9 +108,9 @@ class World:
             if self.is_dynamic:
                 # Correct the time, just in case
                 samp_pos[i].t = time
-                samp_obs[i] = self.objective_function(self, samp_pos[i])
+                samp_obs[i] = self.objective_function(self, samp_pos[i], i)
             else:
-                samp_obs[i] = self.objective_function(self, samp_pos[i])
+                samp_obs[i] = self.objective_function(self, samp_pos[i], i)
 
         # Don't increment time when calling for plotting purposes
         if plotter_res == 0:

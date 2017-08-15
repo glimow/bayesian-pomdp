@@ -78,6 +78,7 @@ class BO:
         if len(self.x) <= 1:  # 2 first points are random
             new_x = np.array([np.random.uniform(self.search_min, self.search_max) for _ in range(self.d)])
         else:
+            # print "X",self.x[-1]
             new_x = self.opt.optimize(np.array(self.x[-1]))
         self.__compute_x_diff__(new_x)
         return new_x
@@ -89,6 +90,8 @@ class BO:
         :param _y: observation value
         """
         # Add x and y to the dataset
+        # print "_x", _x
+        _x = _x[0]
         if len(self.x) == 0:
             self.x.append(_x)
             self.y.append(_y)

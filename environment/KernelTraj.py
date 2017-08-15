@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from environment.pose import Pose
+from environment.state import State
 
 from tools.KMCF import KMCF
 
@@ -8,19 +8,19 @@ __author__ = 'philippe'
 
 
 class KernelTraj:
-    def __init__(self, ld_params, pose, restrict_angle=True):
+    def __init__(self, ld_params, state, restrict_angle=True):
         """
         Compute a Kernel Trajectory (using KMCF) that goes through a specified set of points. The points are specified
         with a (distance, angle) pair from the previous point, starting from 0.0
         :param ld_params: array of (distance, angle) pairs. Angles are in rad
-        :param pose: initial pose, including initial angle
+        :param state: initial state, including initial angle
         :param restrict_angle: adds an additional point at t=0.01 to enforce a starting angle. (default True)
         :return: a KernelTraj object from which a trajectory can be retrieved
         """
-        self.starting_pose = pose
+        self.starting_state = state
         self.ld_params = ld_params
         if restrict_angle:
-            self.restrict_angle = [math.cos(pose.w), math.sin(pose.w)]
+            self.restrict_angle = [math.cos(state.w), math.sin(state.w)]
         else:
             self.restrict_angle = None
 
@@ -32,19 +32,19 @@ class KernelTraj:
         # Create a time vector
         self.times = np.linspace(0, 1, len(ld_params) + 1)[:, np.newaxis]
 
-        # Set the agent's pose as first point in the trajectory
-        self.anchor_pts[0] = [pose.x, pose.y]
+        # Set the agent's state as first point in the trajectory
+        self.anchor_pts[0] = [state.x, state.y]
 
         # Potentially add another point very close to the starting point, to enforce a starting angle
         if restrict_angle:
             dt = 0.01
             self.times = np.insert(self.times, 1, [dt], axis=0)
-            self.anchor_pts[1] = [pose.x + dt * math.cos(pose.w), pose.y + dt * math.sin(pose.w)]
+            self.anchor_pts[1] = [state.x + dt * math.cos(state.w), state.y + dt * math.sin(state.w)]
 
         # For now, just use a constant distance of 0.8 for the whole trajectory
         d = 1.0 / (float(len(ld_params)))
 
-        old_a = pose.w
+        old_a = state.w
         for i in range(len(ld_params)):
             # Convert the angle from [-1, 1]
             if i == 0:
@@ -93,18 +93,18 @@ class KernelTraj:
         # Add time
         pos = np.append(coords, samp_times, axis=1)
 
-        # Compute the angle and angular velocity and convert them to poses
+        # Compute the angle and angular velocity and convert them to states
         dt = 1.0 / (steps + 1)
-        poses = [None] * len(pos)
-        w_last = self.starting_pose.w
-        poses[0] = self.starting_pose.clone()
-        for i in range(1, len(poses)):
+        states = [None] * len(pos)
+        w_last = self.starting_state.w
+        states[0] = self.starting_state.clone()
+        for i in range(1, len(states)):
             w = math.atan2(pos[i][1] - pos[i - 1][1], pos[i][0] - pos[i - 1][0])
             w_vel = (w - w_last) / (2 * dt)
-            poses[i] = Pose(pos[i, 0], pos[i, 1], t=pos[i, 2] + time_offset, w=w, w_vel=w_vel)
+            states[i] = State(pos[i, 0], pos[i, 1], t=pos[i, 2] + time_offset, w=w, w_vel=w_vel)
             w_last = w
 
-        return poses
+        return states
 
     def samp_traj_at(self, time, time_offset=0):
         """
@@ -129,8 +129,8 @@ class KernelTraj:
         w2 = math.atan2(pos[3][1] - pos[2][1], pos[3][0] - pos[2][0])
         w_vel = (w2 - w1) / (2 * dt)
 
-        # Convert them to poses
-        return Pose(pos[2][0], pos[2][1], w=w1, w_vel=w_vel, t=time + time_offset)
+        # Convert them to states
+        return State(pos[2][0], pos[2][1], w=w1, w_vel=w_vel, t=time + time_offset)
 
 
 if __name__ == '__main__':
@@ -145,13 +145,13 @@ if __name__ == '__main__':
 
     plt.subplot(1, 1, 1)
     nparams = 3
-    p = Pose(0, 0, w=0.0, t=0)
+    p = State(0, 0, w=0.0, t=0)
     jerks = []
     for _ in range(20):
         params = np.random.uniform(-1, 1, (nparams, 1))
         # p.w = np.random.uniform(-np.pi, np.pi)
         ker_traj = KernelTraj(params, p, True)
-        traj = np.array(map(Pose.to_xy_array, ker_traj.get_samp_traj(100)))
+        traj = np.array(map(State.to_xy_array, ker_traj.get_samp_traj(100)))
 
         plt.plot(traj[:, 0], traj[:, 1], 'b-')
         anchors = ker_traj.anchor_pts

@@ -70,7 +70,7 @@ class ActionProvider:
         elif self.type == 'kernel_traj':
             return self.simulator.restrict_to_bounds(action.samp_traj_at(time))
 
-    def buid_action_from_params(self, ld_params, pose):
+    def build_action_from_params(self, ld_params, pose):
         """
         Constructs an action from low dimension parameters.
         :param ld_params: a list of low dimensions parameters.

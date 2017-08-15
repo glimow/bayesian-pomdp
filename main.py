@@ -4,10 +4,10 @@ from datetime import datetime
 import numpy as np
 import time
 import matplotlib.pyplot as plt
-from environment.ActionProvider import ActionProvider
+from environment.ActionProvider0 import ActionProvider
 import agent
-from environment.pose import Pose
-from environment.world import World
+from environment.state import State
+from environment.world0 import World
 
 __author__ = 'philippe'
 
@@ -19,7 +19,7 @@ __author__ = 'philippe'
 def run_experiment(exp_id, *config):
     """
     Runs experiments. Experiment configuration defined at the bottom of the file.
-    :param exp_id: Experience name (used for plotting purposes)
+    :param exp_id: Experience name (used for plotting purstates)
     :param config: a configuration tupple.
     :return: a list of accumulated rewards.
     """
@@ -32,51 +32,57 @@ def run_experiment(exp_id, *config):
         nparams = 0
         action_type = 'disc_spline'
     elif config[2] == 'MCTS_cont' and not config[3][3]:
-        nparams = 4  # 4 or 5 for continuous splines
+        nparams = 1  # 4 or 5 for continuous splines
         action_type = 'cont_spline'
     elif config[2] == 'MKCF_FTS_cont' or config[2] == 'MKCF_FTS_cont*' or (config[2] == 'MCTS_cont' and config[3][3]):
-        nparams = 3  # 3 or 4 for kernel trajectories
+        nparams = 1  # 3 or 4 for kernel trajectories
         action_type = 'kernel_traj'
     else:
         raise Exception('Unknown configuration: couldn\'t infer action type.')
 
-    boundaries = [[0, 6], [0, 6]]
+    boundaries = [[0, 1], [0, 1]]
     act_prov = ActionProvider(boundaries, nparams, action_type, obj_fun_type == 'dynamic')
 
-    # Creat the World
-    pose = Pose(1, 1, 0)
-    world = World(pose, obj_fun_type, act_prov, obs_noise_var=0.2)
+    # Create the World
+    state = State([0.8])
+    world = World(state, obj_fun_type, act_prov, obs_noise_var=0.2)
 
     # Get the first observation
-    samp_0 = world.objective_function(world, pose)
+
+    samp_0 = world.objective_function(world, act_prov.build_action_from_params([[0]], state) , state)
 
     # Create agent and give it a first observation
-    agt = agent.Agent(act_prov, world.pose, samp_0, obj_fun_type, config[4], config[2], config[3])
+    agt = agent.Agent(act_prov, world.state, samp_0, obj_fun_type, config[4], config[2], config[3])
 
     # Prepare the plotter class
-    pltr = plotter.Plotter(exp_id, boundaries[0], boundaries[1], n_steps, True, obj_fun_type == 'dynamic',
-                           plot_final_belief, plot_color_traj, plot_acc_rew, plot_belief_evo)
+    #pltr = plotter.Plotter(exp_id, boundaries[0], boundaries[1], n_steps, True, obj_fun_type == 'dynamic',
+    #                       plot_final_belief, plot_color_traj, plot_acc_rew, plot_belief_evo)
 
     # Give the plotter the agent's starting position and first observation
-    pltr.add_agent_start(pose, samp_0)
-    if plot_belief_evo:
-        pltr.gather_belief_data()
-
+    #pltr.add_agent_start(state, samp_0)
+    #if plot_belief_evo:
+    #    pltr.gather_belief_data()
+    states = []
+    obs = []
+    actions = []
     # Start the simulation
     print 'Step:',
     for i in range(n_steps):
         print '{},'.format(i),
         # Agent chooses the next action
-        act = agt.select_action(pose)
-
-        # Send High-res trajectory to plotter
-        samp_pos, samp_obs = world.execute_full_action(act, plot_traj_res)
-        map(pltr.add_agent_step, samp_pos, samp_obs)
+        act = agt.select_action(state)
+        print "action", act.total_distance
+        actions += map(lambda x: -1*x[0] ,act.ld_params)
+        #Send High-res trajectory to plotter
+        #samp_pos, samp_obs = world.execute_full_action(act, plot_traj_res)
+        #map(pltr.add_agent_step, samp_pos, samp_obs)
 
         # Execute action and collect observations along the trajectory.
         samp_pos, samp_obs = world.execute_full_action(act)
-        pose = world.pose.clone()
-        pltr.add_agent_pose(pose)
+        states += [np.sum( map(lambda x: x.to_array(x)[0],samp_pos))]
+        # obs += samp_obs
+        state = world.state.clone()
+        #pltr.add_agent_state(state)
 
         # Give the agent a new observation
         rew = acc_rew[-1]
@@ -90,10 +96,42 @@ def run_experiment(exp_id, *config):
             agt.optimize()
     print 'Done.'
 
+    # states = states
+    # compute state - action
+    action_state = [states[i] - actions[i] for i in range(len(states))]
+    print "states", states
+    plt.figure()
+    plt.subplot(2, 2, 1)
+    plt.plot(acc_rew)
+    plt.legend(loc=2)
+    # plt.ylabel('states')
+    # plt.show()
+    # print plt
+    plt.xlabel('Time steps')
+    plt.ylabel('Accumulated reward')
+    plt.subplot(2, 2, 2)
+    plt.plot(actions)#, 50, normed=1, facecolor='r', alpha=0.75)
+    plt.legend(loc=2)
+    plt.xlabel('Time steps')
+    plt.ylabel('Actions')
+    plt.subplot(2, 2, 3)
+    plt.plot(states)
+    plt.legend(loc=2)
+    plt.xlabel('Time steps')
+    plt.ylabel('Actual state')
+    plt.plot(states)
+    plt.subplot(2, 2, 4)
+    plt.legend(loc=2)
+    plt.plot(actions,states)
+    plt.xlabel('action')
+    plt.ylabel('state minux action')
+    plt.savefig('res/states' + datetime.now().strftime("%Y-%m-%d-%H:%M:%S") + '.png')
+    # plt.show()
+
     # Let's now do some plotting
-    pltr.set_acc_reward(acc_rew)
-    pltr.set_agent_beleif(agt.belief)
-    pltr.display()
+    #pltr.set_acc_reward(acc_rew)
+    #pltr.set_agent_beleif(agt.belief)
+    #pltr.display()
 
     return acc_rew
 
@@ -199,15 +237,15 @@ if __name__ == '__main__':
             f.close()
 
     # Print curv with all rewards
-    if plot_all_exp_rewards:
-        plt.figure()
-        plt.subplot(1, 1, 1)
-        for name, rewards in all_rewards.items():
-            plt.plot(range(len(rewards)), rewards, label=name)
-        plt.legend(loc=2)
-        plt.xlabel('Time steps')
-        plt.ylabel('Accumulated reward')
-        if plotter.save_plot_to_file:
-            plt.savefig('res/comparing_rewards' + datetime.now().strftime("%Y-%m-%d-%H:%M:%S") + '.png')
-        else:
-            plt.show()
+    # if plot_all_exp_rewards:
+    #     plt.figure()
+    #     plt.subplot(1, 1, 1)
+    #     for name, rewards in all_rewards.items():
+    #         plt.plot(range(len(rewards)), rewards, label=name)
+    #     plt.legend(loc=2)
+    #     plt.xlabel('Time steps')
+    #     plt.ylabel('Accumulated reward')
+    #     if plotter.save_plot_to_file:
+    #         plt.savefig('res/comparing_rewards' + datetime.now().strftime("%Y-%m-%d-%H:%M:%S") + '.png')
+    #     else:
+    #         plt.show()
