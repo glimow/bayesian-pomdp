@@ -99,6 +99,7 @@ class Agent:
         :param pose: Pose
         :param obs: Observation (real number)
         """
+        print "obs", obs
         self.belief.update(pose, obs)
 
     def optimize(self, num_iterations=20):

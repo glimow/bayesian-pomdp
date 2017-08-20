@@ -91,7 +91,8 @@ class BO:
         """
         # Add x and y to the dataset
         # print "_x", _x
-        _x = _x[0]
+        # _x = _x[0]
+        # print "_x", _x, "self.x", self.x
         if len(self.x) == 0:
             self.x.append(_x)
             self.y.append(_y)

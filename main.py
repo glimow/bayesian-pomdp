@@ -1,4 +1,4 @@
-import plotter
+# import plotter
 import math
 from datetime import datetime
 import numpy as np
@@ -44,12 +44,12 @@ def run_experiment(exp_id, *config):
     act_prov = ActionProvider(boundaries, nparams, action_type, obj_fun_type == 'dynamic')
 
     # Create the World
-    state = State([0.8])
-    world = World(state, obj_fun_type, act_prov, obs_noise_var=0.2)
+    state = State([0.5])
+    world = World(state, obj_fun_type, act_prov) #obs_noise_var=0.2)
 
     # Get the first observation
 
-    samp_0 = world.objective_function(world, act_prov.build_action_from_params([[0]], state) , state)
+    samp_0 = world.objective_function(world, act_prov.build_action_from_params([0], state) , state)
 
     # Create agent and give it a first observation
     agt = agent.Agent(act_prov, world.state, samp_0, obj_fun_type, config[4], config[2], config[3])
@@ -63,6 +63,7 @@ def run_experiment(exp_id, *config):
     #if plot_belief_evo:
     #    pltr.gather_belief_data()
     states = []
+    states_sum = []
     obs = []
     actions = []
     # Start the simulation
@@ -71,15 +72,20 @@ def run_experiment(exp_id, *config):
         print '{},'.format(i),
         # Agent chooses the next action
         act = agt.select_action(state)
-        print "action", act.total_distance
-        actions += map(lambda x: -1*x[0] ,act.ld_params)
+        print "action", act.ld_params
+        actions += act.ld_params #map(lambda x: -1*x ,act.ld_params)
         #Send High-res trajectory to plotter
         #samp_pos, samp_obs = world.execute_full_action(act, plot_traj_res)
         #map(pltr.add_agent_step, samp_pos, samp_obs)
 
         # Execute action and collect observations along the trajectory.
         samp_pos, samp_obs = world.execute_full_action(act)
-        states += [np.sum( map(lambda x: x.to_array(x)[0],samp_pos))]
+        print "samp_obs", samp_obs
+        states_sum += [map(lambda x: x.to_array(x)[0],samp_pos)[0]]
+        states += map(lambda x: x.to_array(x)[0],samp_pos)
+        # plt.figure()
+        # plt.plot(map(lambda x: x.to_array(x)[0],samp_pos))
+        # plt.show()
         # obs += samp_obs
         state = world.state.clone()
         #pltr.add_agent_state(state)
@@ -98,7 +104,7 @@ def run_experiment(exp_id, *config):
 
     # states = states
     # compute state - action
-    action_state = [states[i] - actions[i] for i in range(len(states))]
+    action_state = [states_sum[i] - actions[i] for i in range(len(states_sum))]
     print "states", states
     plt.figure()
     plt.subplot(2, 2, 1)
@@ -110,7 +116,7 @@ def run_experiment(exp_id, *config):
     plt.xlabel('Time steps')
     plt.ylabel('Accumulated reward')
     plt.subplot(2, 2, 2)
-    plt.plot(actions)#, 50, normed=1, facecolor='r', alpha=0.75)
+    plt.bar(range(len(actions)),actions)#, 50, normed=1, facecolor='r', alpha=0.75)
     plt.legend(loc=2)
     plt.xlabel('Time steps')
     plt.ylabel('Actions')
@@ -119,14 +125,15 @@ def run_experiment(exp_id, *config):
     plt.legend(loc=2)
     plt.xlabel('Time steps')
     plt.ylabel('Actual state')
-    plt.plot(states)
+    # plt.plot(states)
     plt.subplot(2, 2, 4)
     plt.legend(loc=2)
-    plt.plot(actions,states)
-    plt.xlabel('action')
+    plt.plot(states_sum,action_state, 'ro')
+    plt.axis([0,1,0,1])
+    plt.xlabel('state')
     plt.ylabel('state minux action')
     plt.savefig('res/states' + datetime.now().strftime("%Y-%m-%d-%H:%M:%S") + '.png')
-    # plt.show()
+    plt.show()
 
     # Let's now do some plotting
     #pltr.set_acc_reward(acc_rew)
@@ -151,10 +158,10 @@ if __name__ == '__main__':
     # 6  Number of runs per experiment, to be averaged
 
     # Number of episodes to run a simulation for
-    nb_ep = 20
+    nb_ep = 1 #20
 
     # Number of runs per experiment (to average over several runs)
-    run_per_exp = 1
+    run_per_exp = 20
 
     # Plotting arguments
     plot_color_traj = True
@@ -174,19 +181,19 @@ if __name__ == '__main__':
 
         # (1, nb_ep, 'MCTS_disc', (3, 150, 1), exploration_param, 'static', run_per_exp),
         # (2, nb_ep, 'MCTS_disc', (4, 300, 1), exploration_param, 'static', run_per_exp),
-        # (3, nb_ep, 'MCTS_disc', (5, 500, 1), exploration_param, 'static', run_per_exp),
+        #  (3, nb_ep, 'MCTS_disc', (5, 500, 1), exploration_param, 'static', run_per_exp),
 
         # (4, nb_ep, 'MCTS_cont', (1, 37, 1, True), exploration_param, 'static', run_per_exp),
-        # (5, nb_ep, 'MCTS_cont', (2, 75, 1, True), exploration_param, 'static', run_per_exp),
-        (6, nb_ep, 'MCTS_cont', (3, 150, 1, True), exploration_param, 'static', run_per_exp),
+        #(5, nb_ep, 'MCTS_cont', (2, 75, 1, True), exploration_param, 'static', run_per_exp),
+         (6, nb_ep, 'MCTS_cont', (3, 150, 1, True), exploration_param, 'static', run_per_exp),
         # (7, nb_ep, 'MCTS_cont', (4, 300, 1, True), exploration_param, 'static', run_per_exp),
         # (8, nb_ep, 'MCTS_cont', (5, 500, 1, True), exploration_param, 'static', run_per_exp),
 
-        # (9, nb_ep, 'FTS', (1,), exploration_param, 'static', 1),
+        #  (9, nb_ep, 'FTS', (1,), exploration_param, 'static', 1),
         # (10, nb_ep, 'FTS', (2,), exploration_param, 'static', 1),
         # (11, nb_ep, 'FTS', (3,), exploration_param, 'static', 1),
 
-        # (12, nb_ep, 'MKCF_FTS_cont', (3, 0), exploration_param, 'static', run_per_exp),
+        #  (12, nb_ep, 'MKCF_FTS_cont', (3, 0), exploration_param, 'static', run_per_exp),
         # (13, nb_ep, 'MKCF_FTS_cont', (4, 1, 0), exploration_param, 'static', run_per_exp),
 
         # (14, nb_ep, 'MKCF_FTS_cont*', (3, 10), exploration_param, 'static', run_per_exp)

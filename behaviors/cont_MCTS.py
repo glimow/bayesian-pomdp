@@ -41,7 +41,7 @@ class ContMCTS(MCTS):
             return None
         else:
             node.nb_actions_tried += 1
-            action = self.action_provider.build_action_from_params([node.action_picker.next_sample()], node.pose)
+            action = self.action_provider.build_action_from_params(node.action_picker.next_sample(), node.pose)
             # print node.action_picker.next_sample(),action.ld_params, 'node action picker'
             return action
 
@@ -53,7 +53,7 @@ class ContMCTS(MCTS):
         """
         ld_params = [random.uniform(-1.0, 1.0) for _ in range(self.action_provider.nparams)]
         # print 'ldparamas', ld_params
-        return self.action_provider.build_action_from_params([ld_params], new_pose)
+        return self.action_provider.build_action_from_params(ld_params, new_pose)
 
     def new_node(self, belief, pose, reward, parent, from_act):
         """
@@ -67,7 +67,7 @@ class ContMCTS(MCTS):
         """
         node = MCTS.new_node(self, belief, pose, reward, parent, from_act)
         # print self.action_provider.nparams
-        node.action_picker = BO(self.action_provider.nparams, self.act_sel_k, [-1.0, 1.0], opt_maxeval=100,
+        node.action_picker = BO(self.action_provider.nparams, self.act_sel_k, [0.0, 1.0], opt_maxeval=100,
                                 steps_btw_opt=10, custom_gp=True)
         node.nb_actions_tried = 0
 
@@ -102,4 +102,6 @@ class ContMCTS(MCTS):
         :param rew: the corresponding reward.
         """
         # print "act", act.ld_params
-        node.action_picker.update(self.action_provider.get_low_dim(act), rew)
+        low_dim = self.action_provider.get_low_dim(act)
+        # print "low_dim",low_dim
+        node.action_picker.update(low_dim, rew)

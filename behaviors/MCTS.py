@@ -1,3 +1,4 @@
+from __future__ import print_function
 import math
 
 __author__ = 'philippe'
@@ -34,7 +35,8 @@ class MCTS:
         """
         v0 = self.new_node(belief.clone(), from_pose, reward_min, None, None)
         for i in range(self.mcts_max_iter):
-            print "##i##", i
+            print("Computing MCTS: ", i*1.0/self.mcts_max_iter,"%", end="\r")
+            # print "##i##", i
             vi = self.tree_policy(v0)
             r = self.default_policy(vi)
             self.__backup__(vi, r)
@@ -180,7 +182,7 @@ class MCTS:
         :param node: Node from which to get an untried action.
         :return: an untried action.
         """
-        print node
+        # print node
         raise NotImplementedError("Implement this method")
 
     def update_untried_act(self, node, act, rew):

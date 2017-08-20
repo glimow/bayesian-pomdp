@@ -48,7 +48,7 @@ class ContKmcfFts(FTS):
             return None
         else:
             node.nb_actions_tried += 1
-            return self.action_provider.build_action_from_params(node.action_picker.next_sample(), node.pose)
+            return self.action_provider.build_action_from_params([node.action_picker.next_sample()], node.pose)
 
     def __get_random_act__(self, pose):
         """

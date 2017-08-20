@@ -19,7 +19,7 @@ class Belief:
         """
         self.need_recompute = True
         self.x = np.array([])
-        self.y = np.array([[]])
+        self.y = np.array([])
         self.mf = mean_fun
         self.cf = cov_fun
         self.restrict_hyper_parameters = restrict_hyper_parameters
