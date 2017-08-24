@@ -35,7 +35,7 @@ class MCTS:
         """
         v0 = self.new_node(belief.clone(), from_pose, reward_min, None, None)
         for i in range(self.mcts_max_iter):
-            print("Computing MCTS: ", i*1.0/self.mcts_max_iter,"%", end="\r")
+            print("Computing MCTS: ", int(i*1.0/self.mcts_max_iter*100),"%", end="\r")
             # print "##i##", i
             vi = self.tree_policy(v0)
             r = self.default_policy(vi)

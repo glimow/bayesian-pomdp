@@ -44,7 +44,7 @@ def run_experiment(exp_id, *config):
     act_prov = ActionProvider(boundaries, nparams, action_type, obj_fun_type == 'dynamic')
 
     # Create the World
-    state = State([0.5])
+    state = State([ACTUAL_STATE])
     world = World(state, obj_fun_type, act_prov) #obs_noise_var=0.2)
 
     # Get the first observation
@@ -81,7 +81,7 @@ def run_experiment(exp_id, *config):
         # Execute action and collect observations along the trajectory.
         samp_pos, samp_obs = world.execute_full_action(act)
         print "samp_obs", samp_obs
-        states_sum += [map(lambda x: x.to_array(x)[0],samp_pos)[0]]
+        states_sum += [map(lambda x: x.to_array(x)[0],samp_pos)[len(samp_pos)-1]]
         states += map(lambda x: x.to_array(x)[0],samp_pos)
         # plt.figure()
         # plt.plot(map(lambda x: x.to_array(x)[0],samp_pos))
@@ -133,14 +133,14 @@ def run_experiment(exp_id, *config):
     plt.xlabel('state')
     plt.ylabel('state minux action')
     plt.savefig('res/states' + datetime.now().strftime("%Y-%m-%d-%H:%M:%S") + '.png')
-    plt.show()
+    plt.draw()
 
     # Let's now do some plotting
     #pltr.set_acc_reward(acc_rew)
     #pltr.set_agent_beleif(agt.belief)
     #pltr.display()
 
-    return acc_rew
+    return acc_rew, actions, action_state, states_sum
 
 
 if __name__ == '__main__':
@@ -158,10 +158,10 @@ if __name__ == '__main__':
     # 6  Number of runs per experiment, to be averaged
 
     # Number of episodes to run a simulation for
-    nb_ep = 1 #20
+    nb_ep = 10 #20
 
     # Number of runs per experiment (to average over several runs)
-    run_per_exp = 20
+    run_per_exp = 1 #1
 
     # Plotting arguments
     plot_color_traj = True
@@ -185,8 +185,8 @@ if __name__ == '__main__':
 
         # (4, nb_ep, 'MCTS_cont', (1, 37, 1, True), exploration_param, 'static', run_per_exp),
         #(5, nb_ep, 'MCTS_cont', (2, 75, 1, True), exploration_param, 'static', run_per_exp),
-         (6, nb_ep, 'MCTS_cont', (3, 150, 1, True), exploration_param, 'static', run_per_exp),
-        # (7, nb_ep, 'MCTS_cont', (4, 300, 1, True), exploration_param, 'static', run_per_exp),
+        # (6, nb_ep, 'MCTS_cont', (4, 150, 1, True), exploration_param, 'static', run_per_exp),
+        (7, nb_ep, 'MCTS_cont', (4, 300, 1, True), exploration_param, 'static', run_per_exp),
         # (8, nb_ep, 'MCTS_cont', (5, 500, 1, True), exploration_param, 'static', run_per_exp),
 
         #  (9, nb_ep, 'FTS', (1,), exploration_param, 'static', 1),
@@ -204,20 +204,29 @@ if __name__ == '__main__':
 
     # Let's now run all experiments
     all_rewards = {}
+    state = 0
+    total_action = []
+    total_states_action = []
+    total_states = []
     for experiment in experiments:
         experiment_rewards = np.array([])
         tot_time = 0
 
         # Potentially run an experiment several times
         for run_id in range(experiment[6]):
+            ACTUAL_STATE = 0.5#(state % 10)/10.0
+            state +=1
             exp_id = '{} {}'.format(experiment[2], experiment[3][0] if len(experiment[3]) > 0 else '')
             print 'Starting experiment {} ({} steps), run {} of {}.'.format(exp_id, experiment[1], run_id,
                                                                             experiment[6])
             start_time = time.time()
 
             # Running an experiment
-            rewards = np.array(run_experiment(exp_id, *experiment))
-
+            rewards, actions, actions_state, states = run_experiment(exp_id, *experiment)
+            rewards = np.array(rewards)
+            total_action += actions
+            total_states_action += actions_state
+            total_states += states
             # Gathering the accumulated rewards for this experiment
             exp_time = time.time() - start_time
             tot_time += exp_time
@@ -228,17 +237,30 @@ if __name__ == '__main__':
 
             if len(experiment_rewards) == 0:
                 experiment_rewards = np.array([rewards])
+                experiment_x = np.array([ACTUAL_STATE])
             else:
                 experiment_rewards = np.append(experiment_rewards, [rewards], axis=0)
+                experiment_x = np.append(experiment_x, [ACTUAL_STATE], axis=0)
+            print "experiments", experiment_x,experiment_rewards
+        plt.figure()
+        plt.subplot(2, 1, 1)
+        plt.plot(total_states,total_states_action, 'ro')
+        plt.xlabel('States-action/states')
+        plt.subplot(2, 1, 2)
+        # plt.plot(experiment_x,experiment_rewards)
+        plt.plot(total_states, total_action,  'ro')
+        plt.xlabel('Action/states')
+        plt.show()
 
         # Averaging time and accumulated rewards across all runs for a single experiement
         tot_time /= float(experiment[6])
         reward_list = list(np.sum(experiment_rewards, axis=0) / float(experiment[6]))
         all_rewards[exp_id] = reward_list
+
         print 'Experiment', exp_id, 'finished in avg', tot_time, 's,\nwith cumulated rewards:', reward_list
 
         # Logging results in a file
-        if log_in_file:
+        if True:
             f = open('results.txt', 'a+')
             f.write(str(experiment) + '|\t' + str(reward_list) + '\n')
             f.close()
