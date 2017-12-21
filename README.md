@@ -10,4 +10,4 @@
 
 ### Running ###
 
-Run the `main.py` file. Experiment variables are described and can be changed at the bottom of the file.
+Run the `main.py` file. It will launch a sample fishery management problem and plot the result on-screen.
